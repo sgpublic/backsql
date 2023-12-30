@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "backsql"
 
-include(":app")
+include(":backsql")

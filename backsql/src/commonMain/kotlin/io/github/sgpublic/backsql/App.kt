@@ -133,7 +133,8 @@ object App: CliktCommand(), Config {
             .default(false)
 
     override fun run() {
-        log.info("BackSQL 启动${"，启用 DEBUG 模式".takeIf { debug } ?: ""}")
+        log.info("BackSQL 启动，版本：${BuildConfig.VERSION_NAME}")
+        log.debug("启用 DEBUG 模式")
         val action = when {
             duration != null -> DurationTask(this)
             cron != null -> CronTask(this)
