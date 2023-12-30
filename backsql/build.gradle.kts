@@ -64,6 +64,10 @@ buildkonfig {
 }
 
 tasks {
+    val echoVersionName by creating {
+        println("versionName='$version'")
+    }
+
     val clean by getting
     val assembleDist by getting
     val installDist by getting

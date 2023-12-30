@@ -13,13 +13,14 @@ madray@pve:~/backsql$ ./bin/backsql --help
 Usage: backsql [<options>]
 
 Options:
-  --tmp-dir=<path>           缓存目录
-  --save-dir=<path>          备份文件保存目录
+  --tmp-dir=<path>           缓存目录，默认 /var/tmp/backsql
+  --filename-pattern=<text>  归档文件命名规则，默认 backsql_%d{yyyy-MM-dd_HH-mm-ss}
+  --save-dir=<path>          备份文件保存目录，默认 ./backsql
   --single-file              将备份保存为单个 SQL 文件
   --debug / -d               启用 DEBUG 模式
-  --log-dir=<path>           日志保存目录
+  --log-dir=<path>           日志保存目录，默认 /var/log/backsql
   --db-host=<text>           数据库 IP
-  --db-port=<int>            数据库端口
+  --db-port=<int>            数据库端口，默认：3306
   --db-user=<text>           数据库用户
   --db-pass=<text>           数据库密码
   --db-type=(mysql|mariadb)  数据库类型
