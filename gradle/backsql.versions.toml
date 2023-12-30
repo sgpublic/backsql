@@ -2,6 +2,7 @@
 kotlin = "2.0.0-Beta2"
 buildkonfig = "0.14.0"
 docker = "9.4.0"
+release-github = "2.5.2"
 
 slf4j = "2.0.9"
 logback = "1.4.11"
@@ -44,5 +45,6 @@ mariadb = { group = "org.mariadb.jdbc", name = "mariadb-java-client", version.re
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
 docker-api = { id = "com.bmuschko.docker-remote-api", version.ref = "docker" }
+release-github = { id = "com.github.breadmoirai.github-release", version.ref = "release-github" }
 
 [bundles]

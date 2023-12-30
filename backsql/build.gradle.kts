@@ -7,6 +7,7 @@ plugins {
     alias(backsql.plugins.kotlin.multiplatform)
     alias(backsql.plugins.buildkonfig)
     alias(backsql.plugins.docker.api)
+    alias(backsql.plugins.release.github)
     application
 }
 
@@ -64,10 +65,6 @@ buildkonfig {
 }
 
 tasks {
-    val echoVersionName by creating {
-        println("versionName='$version'")
-    }
-
     val clean by getting
     val assembleDist by getting
     val installDist by getting
@@ -76,9 +73,7 @@ tasks {
         group = "docker"
         from("openjdk:17-slim-bullseye")
         workingDir("/app")
-        copy {
-            copyFile("./install/backsql", "/app")
-        }
+        copyFile("./install/backsql", "/app")
         runCommand(listOf(
                 "useradd -u 1000 runner",
                 "apt-get update",
@@ -109,12 +104,31 @@ tasks {
         images.add("$tag:$version")
         images.add("$tag:latest")
     }
+
+    val githubRelease by getting {
+        dependsOn(assembleDist)
+    }
+}
+
+fun findEnv(name: String): String {
+    return findProperty(name)?.toString()?.takeIf { it.isNotBlank() }
+            ?: System.getenv(name.replace(".", "_").uppercase())
 }
 
 docker {
     registryCredentials {
-        username = findProperty("publishing.docker.username")!!.toString()
-        password = findProperty("publishing.docker.password")!!.toString()
-        email = findProperty("publishing.developer.email")!!.toString()
+        username = findEnv("publishing.docker.username")
+        password = findEnv("publishing.docker.password")
     }
+}
+
+githubRelease {
+    token(findEnv("publishing.github.token"))
+    owner = "sgpublic"
+    repo = "backsql"
+    tagName = "v$version"
+    releaseName = "v$version"
+    prerelease = version.toString().let { it.contains("alpha") || it.contains("beta") }
+    releaseAssets = files("./build/distributions/${name}-${version}.zip")
+    overwrite = true
 }

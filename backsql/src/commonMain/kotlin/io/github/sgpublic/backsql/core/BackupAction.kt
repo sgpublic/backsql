@@ -13,6 +13,7 @@ import java.io.File
 import java.sql.DriverManager
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 open class BackupAction private constructor(
     dbConfig: DBConfig, appConfig: AppConfig, taskConfig: TaskConfig
@@ -21,21 +22,33 @@ open class BackupAction private constructor(
     constructor(): this(App, App, App)
 
     override fun execute(context: JobExecutionContext?) {
-        try {
-            log.info("备份任务开始")
-            DriverManager.getConnection(
-                    "jdbc:${dbType.name.lowercase()}://${dbHost}:${dbPort}/?zeroDateTimeBehavior=convertToNull",
-                    dbUser, dbPass
-            ).apply {
-                autoCommit = false
-            }.use { connection ->
-                connection.beginRequest()
-                connection.wrapped(dbType).realRun()
-                connection.rollback()
+        if (running.get()) {
+            log.info("任务运行中，跳过本次执行")
+            return
+        }
+        synchronized(running) {
+            if (running.get()) {
+                return
             }
-            log.info("备份任务结束")
-        } catch (e: Exception) {
-            throw IllegalStateException("数据库连接失败", e)
+            try {
+                running.set(true)
+                log.info("备份任务开始")
+                DriverManager.getConnection(
+                        "jdbc:${dbType.name.lowercase()}://${dbHost}:${dbPort}/?zeroDateTimeBehavior=convertToNull",
+                        dbUser, dbPass
+                ).apply {
+                    autoCommit = false
+                }.use { connection ->
+                    connection.beginRequest()
+                    connection.wrapped(dbType).realRun()
+                    connection.rollback()
+                }
+                log.info("备份任务结束")
+            } catch (e: Exception) {
+                throw IllegalStateException("数据库连接失败", e)
+            } finally {
+                running.set(false)
+            }
         }
     }
 
@@ -172,5 +185,9 @@ open class BackupAction private constructor(
                 targz.addFile(it, it.name)
             }
         }.createArchive()
+    }
+
+    companion object {
+        private val running = AtomicBoolean()
     }
 }

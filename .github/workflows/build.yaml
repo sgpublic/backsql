@@ -33,28 +33,12 @@ jobs:
         uses: gradle/gradle-build-action@v2
 
       - name: Build with Gradle
+        env:
+          PUBLISHING_GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          PUBLISHING_DOCKER_USERNAME: ${{ secrets.PUBLISHING_DOCKER_USERNAME }}
+          PUBLISHING_DOCKER_PASSWORD: ${{ secrets.PUBLISHING_DOCKER_PASSWORD }}
         run: |
-          echo $GRADLE_PROPERTIES > ~/.gradle/gradle.properties
-          bash ./gradlew dockerPushImageOfficial
-
-      - name: Organize files
-        run: |
-          cp ./backsql/build/distributions/*.zip /workdir/
-
-      - name: Generate release tag
-        id: tag
-        run: |
-          release_tag=v$(./gradlew echoVersionName -q | grep -P "versionName='(.*?)'" -o | cut -d \' -f 2)
-          echo "::set-output name=release_tag::$release_tag"
-
-      - name: Upload to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.tag.outputs.release_tag }}
-          file: "/workdir/*"
-          overwrite: true
-          file_glob: true
+          bash ./gradlew dockerPushImageOfficial githubRelease
 
       - name: Delete workflow runs
         uses: GitRML/delete-workflow-runs@main

@@ -8,12 +8,10 @@ import io.github.sgpublic.backsql.App
 
 class ExternalLogFilter: LevelFilter() {
     override fun decide(event: ILoggingEvent?): FilterReply {
-        return if (App.debug) {
-            FilterReply.ACCEPT
-        } else if (event!!.level.isGreaterOrEqual(Level.INFO)) {
+        return if (App.debug || event!!.level.isGreaterOrEqual(Level.INFO)) {
             FilterReply.ACCEPT
         } else {
-            FilterReply.NEUTRAL
+            FilterReply.DENY
         }
     }
 

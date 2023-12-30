@@ -134,7 +134,8 @@ object App: CliktCommand(
             .default(-1)
 
     override val now: Boolean by option("--now",
-            help = "立即执行一次备份任务")
+            help = "立即执行一次备份任务",
+            envvar = "BACKSQL_NOW")
             .flag(default = false)
 
     override fun run() {
@@ -145,9 +146,6 @@ object App: CliktCommand(
             val scheduler = StdSchedulerFactory.getDefaultScheduler()
             val trigger = TriggerBuilder.newTrigger()
                     .apply {
-                        if (now) {
-                            startNow()
-                        }
                         if (cron != null) {
                             log.info("配置 cron 任务：$cron")
                             withSchedule(CronScheduleBuilder.cronSchedule(cron))
@@ -164,6 +162,10 @@ object App: CliktCommand(
                     .ofType(BackupAction::class.java)
                     .build()
             scheduler.scheduleJob(job, trigger)
+            if (now) {
+                log.info("立即执行一次备份！")
+                BackupAction().execute(null)
+            }
             scheduler.start()
             Thread.currentThread().join()
         } else {
