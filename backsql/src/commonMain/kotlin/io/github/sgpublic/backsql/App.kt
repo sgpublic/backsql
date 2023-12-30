@@ -6,12 +6,12 @@ package io.github.sgpublic.backsql
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
+import io.github.sgpublic.backsql.core.BackFilenameEncoder
 import io.github.sgpublic.backsql.core.BackupAction
 import io.github.sgpublic.backsql.core.Config
 import io.github.sgpublic.backsql.core.DBType
-import io.github.sgpublic.backsql.core.task.CronTask
-import io.github.sgpublic.backsql.core.task.DurationTask
-import org.quartz.CronExpression
+import org.quartz.*
+import org.quartz.impl.StdSchedulerFactory
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -30,6 +30,10 @@ object App: CliktCommand(
                 mustBeReadable = true,
             )
             .default(File("/var/tmp/backsql"))
+    override val filenamePattern: String by option("--filename-pattern",
+            help = "归档文件命名规则",
+            envvar = "BACKSQL_TMP_DIR")
+            .default("backsql_%d{yyyy-MM-dd_HH-mm-ss}")
     override val saveDir: File by option("--save-dir",
             help = "备份文件保存目录",
             envvar = "BACKSQL_SAVE_DIR")
@@ -98,10 +102,10 @@ object App: CliktCommand(
             .default(DBType.MySQL)
 
 
-    override val duration: Long? by option("--duration",
+    override val duration: Int? by option("--duration",
             help = "备份任务间隔时间，单位：秒",
             envvar = "BACKSQL_DURATION")
-            .long()
+            .int()
     override val cron: CronExpression? by lazy {
         rawCron?.let { CronExpression(it) }
     }
@@ -118,12 +122,13 @@ object App: CliktCommand(
             }
 
     override val keepTime: Long by option("--keep-time",
-            help = "备份文件保留时长，单位：秒",
+            help = "备份文件保留时长，-1 表示保留所有文件，单位：秒",
             envvar = "BACKSQL_KEEP_TIME")
             .long()
             .default(-1)
+
     override val keepCount: Int by option("--keep-count",
-            help = "备份文件保留数量",
+            help = "备份文件保留数量，-1 表示保留所有文件",
             envvar = "BACKSQL_KEEP_COUNT")
             .int()
             .default(-1)
@@ -135,17 +140,34 @@ object App: CliktCommand(
     override fun run() {
         log.info("BackSQL 启动，版本：${BuildConfig.VERSION_NAME}")
         log.debug("启用 DEBUG 模式")
-        val action = when {
-            duration != null -> DurationTask(this)
-            cron != null -> CronTask(this)
-            else -> BackupAction(this)
-        }
-        if (!action.init()) {
-            log.error("初始化失败，退出程序...")
-            return
-        }
-        action.use {
-            it.run()
+
+        if (cron != null || duration != null) {
+            val scheduler = StdSchedulerFactory.getDefaultScheduler()
+            val trigger = TriggerBuilder.newTrigger()
+                    .apply {
+                        if (now) {
+                            startNow()
+                        }
+                        if (cron != null) {
+                            log.info("配置 cron 任务：$cron")
+                            withSchedule(CronScheduleBuilder.cronSchedule(cron))
+                        } else if (duration != null) {
+                            log.info("配置定时任务：每 $duration 执行一次")
+                            withSchedule(SimpleScheduleBuilder.repeatSecondlyForever(duration!!))
+                        } else {
+                            throw IllegalStateException("我超！你居然能触发这个抛错！厉害了！")
+                        }
+                    }
+                    .build()
+            val job = JobBuilder.newJob()
+                    .withIdentity("job")
+                    .ofType(BackupAction::class.java)
+                    .build()
+            scheduler.scheduleJob(job, trigger)
+            scheduler.start()
+            Thread.currentThread().join()
+        } else {
+            BackupAction().execute(null)
         }
         log.info("BackSQL 结束")
     }

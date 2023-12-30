@@ -25,7 +25,7 @@ enum class DBType(
 }
 
 interface TaskConfig {
-    val duration: Long?
+    val duration: Int?
     val cron: CronExpression?
     val keepTime: Long
     val keepCount: Int
@@ -33,6 +33,7 @@ interface TaskConfig {
 }
 
 interface AppConfig {
+    val filenamePattern: String
     val tmpDir: File
     val saveDir: File
     val singleFile: Boolean

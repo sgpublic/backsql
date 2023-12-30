@@ -60,9 +60,9 @@ fun Any?.asValueString(rawType: Int): String {
         is LocalDate -> Date.valueOf(this).asValueString(rawType)
         is LocalDateTime -> Timestamp.valueOf(this).asValueString(rawType)
         null -> when (rawType) {
-            Types.DATE -> Time.valueOf("0000-00-00").asValueString(rawType)
-            Types.TIME -> Date.valueOf("00:00:00").asValueString(rawType)
-            Types.TIMESTAMP -> Timestamp.valueOf("0000-00-00 00:00:00").asValueString(rawType)
+            Types.DATE -> "'0000-00-00'"
+            Types.TIME -> "'00:00:00'"
+            Types.TIMESTAMP -> "'0000-00-00 00:00:00'"
             else -> "NULL"
         }
         else -> "'${this}'"

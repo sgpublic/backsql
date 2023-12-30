@@ -55,7 +55,7 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
             if (!it.next()) {
                 throw IllegalStateException("无法查询数据库 $database 创建语句")
             } else {
-                it.getString(2)
+                "${it.getString(2)};"
             }
         }
     }
@@ -71,11 +71,11 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
     }
 
     override fun showCreateTable(database: String, table: String): String {
-        return executeQuery("show create database ${database};") {
+        return executeQuery(database, "show create table ${table};") {
             if (!it.next()) {
                 throw IllegalStateException("无法查询数据表 ${database}.${table} 创建语句")
             } else {
-                it.getString(2)
+                "${it.getString(2)};"
             }
         }
     }
@@ -97,8 +97,8 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
             val result = StringJoiner(", ", "INSERT INTO `${table}` VALUES(", ");")
             for (column in 1 .. it.metaData.columnCount) {
                 val data = it.getObject(column)
-                if (row <= 1) {
-                    log.debug("数据表 ${database}.${table} 中第 $row 条记录，第 $column 列类型为 ${
+                if (row <= 0) {
+                    log.debug("数据表 ${database}.${table} 第 $column 列类型为 ${
                         data?.let { it::class.qualifiedName } ?: it.metaData.getColumnTypeName(column)
                     }")
                 }

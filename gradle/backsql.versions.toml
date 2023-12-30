@@ -13,12 +13,14 @@ clikt = "4.2.1"
 uniktx = "1.0.0-beta03"
 quartz = "2.3.2"
 uuid = "0.0.22"
+archiver = "4.9.1"
 
 # Database Driver
 mysql = "8.0.33"
 mariadb = "3.3.2"
 
 [libraries]
+kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
@@ -32,6 +34,7 @@ uniktx-kotlin-logback = { group = "io.github.sgpublic", name = "uniktx-kotlin-lo
 clikt = { group = "com.github.ajalt.clikt", name = "clikt", version.ref = "clikt" }
 quartz = { group = "org.quartz-scheduler", name = "quartz", version.ref = "quartz" }
 uuid = { group = "app.softwork", name = "kotlinx-uuid-core", version.ref = "uuid" }
+archiver = { group = "org.codehaus.plexus", name = "plexus-archiver", version.ref = "archiver" }
 
 # Database Drivers
 mysql = { group = "mysql", name = "mysql-connector-java", version.ref = "mysql" }

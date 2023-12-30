@@ -25,8 +25,8 @@ Options:
   --db-type=(mysql|mariadb)  数据库类型
   --duration=<int>           备份任务间隔时间，单位：秒
   --cron=<text>              备份任务 cron 表达式
-  --keep-time=<int>          备份文件保留时长，单位：秒
-  --keep-count=<int>         备份文件保留数量
+  --keep-time=<int>          备份文件保留时长，-1 表示保留所有文件，单位：秒
+  --keep-count=<int>         备份文件保留数量，-1 表示保留所有文件
   --now                      立即执行一次备份任务
   -h, --help                 Show this message and exit
 ```

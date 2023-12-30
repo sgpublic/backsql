@@ -31,8 +31,15 @@ kotlin {
                 implementation(backsql.clikt)
                 implementation(backsql.quartz)
                 implementation(backsql.uuid)
+                implementation(backsql.archiver)
             }
         }
+        val commonTest by getting {
+            dependencies {
+                implementation(backsql.kotlin.test)
+            }
+        }
+
         val jvmMain by getting {
             dependencies {
                 implementation(backsql.slf4j)
