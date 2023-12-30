@@ -2,8 +2,11 @@ package io.github.sgpublic.backsql.dbstmt
 
 import io.github.sgpublic.backsql.core.DBType
 import org.slf4j.LoggerFactory
-import java.sql.Connection
-import java.sql.ResultSet
+import java.io.InputStream
+import java.sql.*
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 abstract class DatabaseConnection(
     private val connection: Connection,
@@ -34,6 +37,36 @@ abstract class DatabaseConnection(
     abstract fun showCreateTable(database: String, table: String): String
     abstract fun showTableRecordCount(database: String, table: String): Long
     abstract fun showInsertTable(database: String, table: String, row: Long): String
+}
+
+@OptIn(ExperimentalStdlibApi::class)
+fun Any?.asValueString(rawType: Int): String {
+    return when (this) {
+        is Number -> this.toString()
+        is Boolean -> if (this) "1" else "0"
+        is InputStream -> {
+            val byteStr = StringBuilder()
+            var byte: Int
+            while (this.read().also { byte = it } != -1) {
+                val str = byte.toHexString(HexFormat.UpperCase)
+                if (str.length == 1) {
+                    byteStr.append('0')
+                }
+                byteStr.append(str)
+            }
+            "X'$byteStr'"
+        }
+        is LocalTime -> Time.valueOf(this).asValueString(rawType)
+        is LocalDate -> Date.valueOf(this).asValueString(rawType)
+        is LocalDateTime -> Timestamp.valueOf(this).asValueString(rawType)
+        null -> when (rawType) {
+            Types.DATE -> Time.valueOf("0000-00-00").asValueString(rawType)
+            Types.TIME -> Date.valueOf("00:00:00").asValueString(rawType)
+            Types.TIMESTAMP -> Timestamp.valueOf("0000-00-00 00:00:00").asValueString(rawType)
+            else -> "NULL"
+        }
+        else -> "'${this}'"
+    }
 }
 
 data class Database(

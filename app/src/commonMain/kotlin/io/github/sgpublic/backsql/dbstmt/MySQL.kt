@@ -1,12 +1,6 @@
 package io.github.sgpublic.backsql.dbstmt
 
-import java.io.InputStream
 import java.sql.Connection
-import java.sql.Date
-import java.sql.Time
-import java.sql.Timestamp
-import java.sql.Types
-import java.time.Instant
 import java.util.StringJoiner
 
 open class MySQL(connection: Connection): DatabaseConnection(connection) {
@@ -95,7 +89,6 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
             }
         }
     }
-    @OptIn(ExperimentalStdlibApi::class)
     override fun showInsertTable(database: String, table: String, row: Long): String {
         return executeQuery(database, "SELECT * FROM $table LIMIT 1 OFFSET ${row};") {
             if (!it.next()) {
@@ -104,34 +97,12 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
             val result = StringJoiner(", ", "INSERT INTO `${table}` VALUES(", ");")
             for (column in 1 .. it.metaData.columnCount) {
                 val data = it.getObject(column)
-                if (column <= 1) {
-                    log.debug("数据表 ${database}.${table} 中第 $row 条记录的第 $column 类型为 ${data::class}")
+                if (row <= 1) {
+                    log.debug("数据表 ${database}.${table} 中第 $row 条记录，第 $column 列类型为 ${
+                        data?.let { it::class.qualifiedName } ?: it.metaData.getColumnTypeName(column)
+                    }")
                 }
-                result.add(when (data) {
-                    is Number -> data
-                    is Boolean -> if (data) 1 else 0
-                    is InputStream -> {
-                        val byteStr = StringBuilder()
-                        var byte: Int
-                        while (data.read().also { byte = it } != -1) {
-                            val str = byte.toHexString(HexFormat.UpperCase)
-                            if (str.length == 1) {
-                                byteStr.append('0')
-                            }
-                            byteStr.append(str)
-                        }
-                        "X'$byteStr'"
-                    }
-                    null -> {
-                        when (it.metaData.getColumnType(column)) {
-                            Types.DATE -> "'0000-00-00'"
-                            Types.TIME -> "'00:00:00'"
-                            Types.TIMESTAMP -> "'0000-00-00 00:00:00'"
-                            else -> "NULL"
-                        }
-                    }
-                    else -> "'${data}'"
-                }.toString())
+                result.add(data.asValueString(it.metaData.getColumnType(column)))
             }
 
             result.toString()

@@ -4,10 +4,7 @@
 package io.github.sgpublic.backsql
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.check
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 import io.github.sgpublic.backsql.core.BackupAction
 import io.github.sgpublic.backsql.core.Config
@@ -47,11 +44,10 @@ object App: CliktCommand(), Config {
             .boolean()
             .default(false)
 
-    override val debug: Boolean by option("-d", "--debug",
+    override val debug: Boolean by option("--debug",
             help = "启用 DEBUG 模式",
             envvar = "BACKSQL_DEBUG")
-            .boolean()
-            .default(false)
+            .flag("-d", default = false)
     override val logDir: File by option("--log-dir",
             help = "日志保存目录",
             envvar = "BACKSQL_LOG_DIR")
@@ -137,7 +133,7 @@ object App: CliktCommand(), Config {
             .default(false)
 
     override fun run() {
-        log.info("备份启动")
+        log.info("BackSQL 启动${"，启用 DEBUG 模式".takeIf { debug } ?: ""}")
         val action = when {
             duration != null -> DurationTask(this)
             cron != null -> CronTask(this)
@@ -150,7 +146,7 @@ object App: CliktCommand(), Config {
         action.use {
             it.run()
         }
-        log.info("备份结束")
+        log.info("BackSQL 结束")
     }
 }
 

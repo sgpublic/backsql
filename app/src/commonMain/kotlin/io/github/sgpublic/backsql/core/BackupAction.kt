@@ -122,7 +122,7 @@ open class BackupAction(
                         val total = showTableRecordCount(database, table)
                         log.info("数据表 $database.$table 共 $total 条记录")
                         for (index in 0 until total) {
-                            log.debug("正在导出第 $index 条记录")
+                            log.debug("正在导出数据表 ${database}.${table} 中第 $index 条记录")
                             it.appendLine(showInsertTable(database, table, index))
                         }
                     }

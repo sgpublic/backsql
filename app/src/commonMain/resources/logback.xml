@@ -9,7 +9,7 @@
     <!--输出到控制台的 appender-->
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <!--自定义过滤器，自动判断 debug 环境-->
-        <filter class="io.github.sgpublic.kotlin.core.logback.filter.ConsoleFilter" />
+        <filter class="io.github.sgpublic.backsql.logback.ExternalLogFilter" />
         <encoder class="io.github.sgpublic.kotlin.core.logback.encoder.ConsolePatternLayoutEncoder">
             <!--自定义格式化日志布局，优化日志定位支持-->
             <pattern>%colored(%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level \(%trace\): %msg%n)</pattern>
