@@ -15,7 +15,9 @@ import org.quartz.CronExpression
 import org.slf4j.LoggerFactory
 import java.io.File
 
-object App: CliktCommand(), Config {
+object App: CliktCommand(
+    name = BuildConfig.APPLICATION_ID,
+), Config {
     private val log by lazy { LoggerFactory.getLogger(this::class.java) }
 
     override val tmpDir: File by option("--tmp-dir",
@@ -41,8 +43,7 @@ object App: CliktCommand(), Config {
     override val singleFile: Boolean by option("--single-file",
             help = "将备份保存为单个 SQL 文件",
             envvar = "BACKSQL_SINGLE_FILE")
-            .boolean()
-            .default(false)
+            .flag(default = false)
 
     override val debug: Boolean by option("--debug",
             help = "启用 DEBUG 模式",
@@ -129,8 +130,7 @@ object App: CliktCommand(), Config {
 
     override val now: Boolean by option("--now",
             help = "立即执行一次备份任务")
-            .boolean()
-            .default(false)
+            .flag(default = false)
 
     override fun run() {
         log.info("BackSQL 启动，版本：${BuildConfig.VERSION_NAME}")

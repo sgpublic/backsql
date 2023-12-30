@@ -1,8 +1,7 @@
-import com.codingfeline.buildkonfig.compiler.FieldSpec
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
 import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
-import org.jetbrains.kotlin.cli.jvm.main
+import com.codingfeline.buildkonfig.compiler.FieldSpec
 
 plugins {
     alias(backsql.plugins.kotlin.multiplatform)
@@ -53,6 +52,7 @@ buildkonfig {
 
     defaultConfigs {
         buildConfigField(FieldSpec.Type.STRING, "VERSION_NAME", version.toString())
+        buildConfigField(FieldSpec.Type.STRING, "APPLICATION_ID", rootProject.name)
     }
 }
 
