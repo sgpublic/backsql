@@ -1,5 +1,4 @@
 import com.codingfeline.buildkonfig.compiler.FieldSpec
-import java.lang.reflect.Type
 
 plugins {
     alias(backsql.plugins.kotlin.multiplatform)
@@ -14,7 +13,7 @@ kotlin {
         withJava()
         withSourcesJar()
         mainRun {
-            mainClass = "$group.backsql.App"
+            mainClass = "$group.backsql.AppKt"
         }
     }
 
@@ -22,6 +21,18 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(backsql.clikt)
+                implementation(backsql.quartz)
+                implementation(backsql.uuid)
+            }
+        }
+        val jvmMain by getting {
+            dependencies {
+                implementation(backsql.slf4j)
+                implementation(backsql.logback.classic)
+                implementation(backsql.uniktx.kotlin.logback)
+
+                runtimeOnly(backsql.mysql)
+                runtimeOnly(backsql.mariadb)
             }
         }
     }
@@ -29,8 +40,7 @@ kotlin {
 
 buildkonfig {
     packageName = "$group.backsql"
-    // objectName = 'YourAwesomeConfig'
-    // exposeObjectWithName = 'YourAwesomePublicConfig'
+    objectName = "BuildConfig"
 
     defaultConfigs {
         buildConfigField(FieldSpec.Type.STRING, "VERSION_NAME", version.toString())
