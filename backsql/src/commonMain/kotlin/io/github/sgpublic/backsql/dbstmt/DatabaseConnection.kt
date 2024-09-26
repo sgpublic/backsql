@@ -1,6 +1,7 @@
 package io.github.sgpublic.backsql.dbstmt
 
 import io.github.sgpublic.backsql.core.DBType
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.sql.*
@@ -11,7 +12,7 @@ import java.time.LocalTime
 abstract class DatabaseConnection(
     private val connection: Connection,
 ): Connection by connection {
-    protected val log by lazy { LoggerFactory.getLogger(this::class.java) }
+    protected val log: Logger by lazy { LoggerFactory.getLogger(this::class.java) }
 
     fun <T: Any> executeQuery(database: String, sql: String, block: (ResultSet) -> T): T {
         createStatement().use {
@@ -32,41 +33,56 @@ abstract class DatabaseConnection(
 
     abstract fun version(): String
     abstract fun showDatabases(): Set<Database>
+    open fun preCreateDatabase(database: String, charset: String): String? = null
     abstract fun showCreateDatabase(database: String): String
+    open fun postCreateDatabase(database: String, charset: String): String? = null
     abstract fun showTables(database: String): Set<String>
+    open fun preCreateTable(database: String, table: String): String? = null
     abstract fun showCreateTable(database: String, table: String): String
+    open fun postCreateTable(database: String, table: String): String? = null
     abstract fun showTableRecordCount(database: String, table: String): Long
+    open fun preInsertTable(database: String, table: String, row: Long): String? = null
     abstract fun showInsertTable(database: String, table: String, row: Long): String
-}
+    open fun postInsertTable(database: String, table: String, row: Long): String? = null
+    open fun postFinalDatabase(database: String, charset: String): String? = null
 
-@OptIn(ExperimentalStdlibApi::class)
-fun Any?.asValueString(rawType: Int): String {
-    return when (this) {
-        is Number -> this.toString()
-        is Boolean -> if (this) "1" else "0"
-        is InputStream -> {
-            val byteStr = StringBuilder()
-            var byte: Int
-            while (this.read().also { byte = it } != -1) {
-                val str = byte.toHexString(HexFormat.UpperCase)
-                if (str.length == 1) {
-                    byteStr.append('0')
-                }
-                byteStr.append(str)
-            }
-            "X'$byteStr'"
+    open fun Any?.asValueString(rawType: Int): String {
+        return when (this) {
+            is Number -> numberAsValueString(this, rawType)
+            is Boolean -> booleanAsValueString(this, rawType)
+            is InputStream -> inputStreamAsValueString(this, rawType)
+            is LocalTime -> Time.valueOf(this).asValueString(rawType)
+            is LocalDate -> Date.valueOf(this).asValueString(rawType)
+            is LocalDateTime -> Timestamp.valueOf(this).asValueString(rawType)
+            null -> nullAsValueString(rawType)
+            else -> anyAsValueString(this, rawType)
         }
-        is LocalTime -> Time.valueOf(this).asValueString(rawType)
-        is LocalDate -> Date.valueOf(this).asValueString(rawType)
-        is LocalDateTime -> Timestamp.valueOf(this).asValueString(rawType)
-        null -> when (rawType) {
+    }
+
+    open fun numberAsValueString(value: Number, rawType: Int): String = value.toString()
+    open fun booleanAsValueString(value: Boolean, rawType: Int): String = if (value) "1" else "0"
+    @OptIn(ExperimentalStdlibApi::class)
+    open fun inputStreamAsValueString(value: InputStream, rawType: Int): String {
+        val byteStr = StringBuilder()
+        var byte: Int
+        while (value.read().also { byte = it } != -1) {
+            val str = byte.toHexString(HexFormat.UpperCase)
+            if (str.length == 1) {
+                byteStr.append('0')
+            }
+            byteStr.append(str)
+        }
+        return "X'$byteStr'"
+    }
+    open fun nullAsValueString(rawType: Int, defaultNull: String = "NULL"): String {
+        return when (rawType) {
             Types.DATE -> "'0000-00-00'"
             Types.TIME -> "'00:00:00'"
             Types.TIMESTAMP -> "'0000-00-00 00:00:00'"
-            else -> "NULL"
+            else -> defaultNull
         }
-        else -> "'${this}'"
     }
+    open fun anyAsValueString(value: Any, rawType: Int): String = "'${value.toString().replace("'", "''")}'"
 }
 
 data class Database(

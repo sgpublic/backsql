@@ -10,6 +10,7 @@ import org.quartz.Job
 import org.quartz.JobExecutionContext
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.FileOutputStream
 import java.sql.DriverManager
 import java.text.SimpleDateFormat
 import java.util.*
@@ -64,8 +65,8 @@ open class BackupAction private constructor(
 
             var sqlFile: File? = null
             if (singleFile) {
-                sqlFile = File(tmpDir, "backsql.sql")
-                sqlFile.outputStream().bufferedWriter().use {
+                sqlFile = tmpDir.newChildFile("backsql.sql")
+                sqlFile.appendOutputStream().bufferedWriter().use {
                     it.appendLine("""
                         /*
                          BackSQL Data Transfer
@@ -82,11 +83,9 @@ open class BackupAction private constructor(
             for ((database, charset) in showDatabases()) {
                 log.info("正在导出数据库 $database")
                 if (!singleFile) {
-                    sqlFile = File(tmpDir, "${database}.sql")
+                    sqlFile = tmpDir.newChildFile("${database}.sql")
                 }
-                sqlFile?.parentFile?.mkdirs()
-                sqlFile?.createNewFile()
-                sqlFile?.outputStream()?.bufferedWriter()?.use {
+                sqlFile?.appendOutputStream()?.bufferedWriter()?.use {
                     if (!singleFile) {
                         it.appendLine("""
                             /*
@@ -103,20 +102,16 @@ open class BackupAction private constructor(
                         """.trimIndent())
                     } else {
                         it.appendLine("""
-                            DROP DATABASE IF EXISTS '${database}';
-                        """.trimIndent())
-                        it.appendLine(showCreateDatabase(database))
-                        it.appendLine()
-                        it.appendLine("""
-                            USE DATABASE $database;
-                            
+                            -- ----------------------------
+                            -- Database named '${database}'
+                            -- ----------------------------
                         """.trimIndent())
                     }
-                    it.appendLine("""
-                        SET NAMES $charset;
-                        SET FOREIGN_KEY_CHECKS 0;
-                            
-                    """.trimIndent())
+
+                    preCreateDatabase(database, charset)?.let(it::appendLine)
+                    it.appendLine(showCreateDatabase(database))
+                    postCreateDatabase(database, charset)?.let(it::appendLine)
+                    it.appendLine()
 
                     for (table in showTables(database)) {
                         log.info("正在导出数据表 $database.$table")
@@ -125,9 +120,10 @@ open class BackupAction private constructor(
                             -- ----------------------------
                             -- Table structure for ${"${database}.".takeIf { singleFile } ?: ""}$table
                             -- ----------------------------
-                            DROP TABLE IF EXISTS `$table`;
                         """.trimIndent())
+                        preCreateTable(database, table)?.let(it::appendLine)
                         it.appendLine(showCreateTable(database, table))
+                        postCreateTable(database, table)?.let(it::appendLine)
                         it.appendLine()
                         it.appendLine("""
                             -- ----------------------------
@@ -138,13 +134,13 @@ open class BackupAction private constructor(
                         val total = showTableRecordCount(database, table)
                         log.info("数据表 $database.$table 共 $total 条记录")
                         for (index in 0 until total) {
+                            preInsertTable(database, table, index)?.let(it::appendLine)
                             it.appendLine(showInsertTable(database, table, index))
+                            postInsertTable(database, table, index)?.let(it::appendLine)
                         }
                         it.appendLine()
                     }
-                    it.appendLine("""
-                        SET FOREIGN_KEY_CHECKS 1;
-                    """.trimIndent())
+                    postFinalDatabase(database, charset)?.let(it::appendLine)
                 }
             }
 
@@ -169,7 +165,7 @@ open class BackupAction private constructor(
             }
             fileList.forEachIndexed { index, file ->
                 val fileExpired = file.lastModified() - System.currentTimeMillis()
-                if ((keepCount > 0 && index >= keepCount) || (keepTime >= 0 && fileExpired >= keepTime * 1000)) {
+                if ((keepCount in 1..index) || (keepTime >= 0 && fileExpired >= keepTime * 1000)) {
                     file.deleteRecursively()
                 }
             }
@@ -185,6 +181,17 @@ open class BackupAction private constructor(
                 targz.addFile(it, it.name)
             }
         }.createArchive()
+    }
+
+    private fun File.newChildFile(name: String): File {
+        return File(this, name).also { newFile ->
+            newFile.parentFile?.mkdirs()
+            newFile.createNewFile()
+        }
+    }
+
+    private fun File.appendOutputStream(append: Boolean = true): FileOutputStream {
+        return FileOutputStream(this, append)
     }
 
     companion object {

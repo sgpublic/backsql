@@ -4,16 +4,16 @@ import java.sql.Connection
 import java.util.StringJoiner
 
 open class MySQL(connection: Connection): DatabaseConnection(connection) {
-    protected open val SystemDatabase: Set<String> = setOf(
-            "mysql",
-            "information_schema",
-            "performance_schema",
-            "sys",
+    protected open val excludeDatabase: Set<String> = setOf(
+        "mysql",
+        "information_schema",
+        "performance_schema",
+        "sys",
     )
 
     override fun version(): String {
         return executeQuery("select VERSION()") {
-             if (!it.next()) {
+            if (!it.next()) {
                 log.warn("无法查询数据库版本")
                 "Unknown"
             } else {
@@ -27,7 +27,7 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
         executeQuery("show databases;") {
             while (it.next()) {
                 val databaseName = it.getString(1)
-                if (SystemDatabase.contains(databaseName)) {
+                if (excludeDatabase.contains(databaseName)) {
                     continue
                 }
                 result.add(databaseName)
@@ -50,6 +50,14 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
         }.toSet()
     }
 
+    override fun preCreateDatabase(database: String, charset: String): String {
+        return """
+            SET NAMES $charset;
+            SET FOREIGN_KEY_CHECKS=0;
+            DROP DATABASE IF EXISTS '${database}';
+        """.trimIndent()
+    }
+
     override fun showCreateDatabase(database: String): String {
         return executeQuery("show create database $database;") {
             if (!it.next()) {
@@ -60,6 +68,12 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
         }
     }
 
+    override fun postCreateDatabase(database: String, charset: String): String {
+        return """
+            USE DATABASE $database;
+        """.trimIndent()
+    }
+
     override fun showTables(database: String): Set<String> {
         val result = HashSet<String>()
         executeQuery(database, "show tables;") {
@@ -68,6 +82,12 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
             }
         }
         return result
+    }
+
+    override fun preCreateTable(database: String, table: String): String {
+        return """
+            DROP TABLE IF EXISTS `$table`;
+        """.trimIndent()
     }
 
     override fun showCreateTable(database: String, table: String): String {
@@ -89,6 +109,7 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
             }
         }
     }
+
     override fun showInsertTable(database: String, table: String, row: Long): String {
         return executeQuery(database, "SELECT * FROM $table LIMIT 1 OFFSET ${row};") {
             if (!it.next()) {
@@ -107,5 +128,11 @@ open class MySQL(connection: Connection): DatabaseConnection(connection) {
 
             result.toString()
         }
+    }
+
+    override fun postFinalDatabase(database: String, charset: String): String {
+        return """
+            SET FOREIGN_KEY_CHECKS=1;
+        """.trimIndent()
     }
 }

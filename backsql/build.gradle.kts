@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "io.github.sgpublic"
-version = "1.0.0-alpha01"
+version = "1.0.0-alpha02"
 
 kotlin {
     jvm {
@@ -110,8 +110,8 @@ tasks {
     }
 }
 
-fun findEnv(name: String): String {
-    return findProperty(name)?.toString()?.takeIf { it.isNotBlank() }
+fun findEnv(name: String) = provider {
+    return@provider findProperty(name)?.toString()?.takeIf { it.isNotBlank() }
             ?: System.getenv(name.replace(".", "_").uppercase())
 }
 
